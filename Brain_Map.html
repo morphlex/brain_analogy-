@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Brain Map: AI Personality Core</title>
+    <style>
+/* General body styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(135deg, #0A0F1E 0%, #1a1a2e 50%, #16213e 100%);
+    color: #f0f0f0;
+    overflow: hidden;
+}
+
+/* Logo styles */
+.logo {
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 4px;
+    z-index: 101;
+}
+
+.app-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.info-panel {
+    position: absolute;
+    top: 70px;
+    left: 20px;
+    background: rgba(20, 25, 40, 0.9);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(106, 215, 255, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 300px;
+    z-index: 100;
+}
+.info-panel h3 { color: #6ad7ff; margin: 0 0 10px 0; font-size: 18px; }
+.info-panel p { color: #d0d0d0; font-size: 14px; line-height: 1.4; margin: 0; }
+.tour-button {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px 15px;
+    background: rgba(106, 215, 255, 0.1);
+    border: 1px solid rgba(106, 215, 255, 0.3);
+    color: #f0f0f0;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.tour-button:hover {
+    background: rgba(106, 215, 255, 0.2);
+    border-color: #6ad7ff;
+}
+
+.brain-viewport {
+    position: relative;
+    width: 750px;
+    height: 750px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* --- NEW: Add a glow to blend the brain with the background --- */
+    filter: drop-shadow(0 0 35px rgba(106, 215, 255, 0.2));
+}
+.brain-viewport img, .visual-container img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    pointer-events: none;
+}
+
+#base-brain {
+    z-index: 1;
+    opacity: 1;
+}
+
+.brain-region {
+    z-index: 3; /* Interactive layer is always on top */
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.4s ease;
+    pointer-events: auto !important;
+}
+
+/* --- NEW VISUAL STRUCTURE --- */
+.visual-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; /* Containers don't block mouse events */
+}
+
+#hover-layer, #active-layer {
+    z-index: 2; /* Visual layers are under the interactive ones */
+}
+
+#hover-layer img {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#active-layer img {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Class for polygon highlight when sidebar is open */
+.brain-region.is-polygon-hover {
+    opacity: 1;
+}
+
+
+@keyframes tour-pulse-animation {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0.1; }
+}
+
+/* The tour highlight now respects the clip-path of the region */
+.tour-highlight {
+    animation: tour-pulse-animation 1.8s infinite;
+    pointer-events: none;
+}
+
+/* Clip paths for brain regions */
+#occipital-region { clip-path: polygon(65% 55%, 64% 50%, 62% 46%, 57% 45%, 51% 47%, 46% 51%, 40% 51%, 33% 52%, 30% 56%, 28% 59%, 27% 62%, 28% 64%, 28% 66%, 32% 70%, 38% 72%, 45% 72%, 52% 70%, 60% 68%, 68% 68%, 74% 67%, 74% 64%, 69% 62%, 69% 59%, 67% 56%); }
+#temporal-region { clip-path: polygon(49% 70%, 52% 74%, 54% 75%, 57% 80%, 60% 85%, 62% 88%, 67% 88%, 66% 81%, 72% 81%, 78% 80%, 83% 74%, 85% 67%, 77% 67%); }
+#parietal-region { clip-path: polygon(50% 17%, 44% 16%, 44% 18%, 42% 20%, 41% 24%, 40% 27%, 37% 31%, 37% 36%, 38% 41%, 38% 41%, 38% 46%, 38% 48%, 41% 51%, 47% 50%, 52% 46%, 55% 45%, 53% 39%, 53% 42%, 54% 36%, 55% 30%, 54% 32%, 58% 26%, 58% 22%, 62% 18%, 56% 16%); }
+#frontal-region { clip-path: polygon(63% 18%, 60% 19%, 60% 19%, 59% 23%, 57% 27%, 57% 27%, 54% 31%, 54% 35%, 54% 39%, 54% 43%, 56% 44%, 61% 45%, 63% 47%, 64% 50%, 65% 53%, 66% 54%, 71% 51%, 74% 46%, 78% 41%, 81% 36%, 85% 35%, 80% 30%, 76% 26%, 71% 21%); }
+#cerebellum-region { clip-path: polygon(75% 67%, 72% 62%, 69% 62%, 68% 58%, 65% 55%, 71% 52%, 74% 46%, 77% 43%, 79% 39%, 83% 36%, 86% 36%, 91% 43%, 93% 47%, 93% 51%, 94% 56%, 92% 61%, 88% 67%); }
+#control-region { clip-path: polygon(44% 17%, 42% 19%, 42% 24%, 40% 28%, 37% 32%, 38% 39%, 38% 45%, 39% 49%, 34% 52%, 29% 56%, 27% 59%, 27% 59%, 27% 63%, 19% 63%, 13% 60%, 8% 55%, 8% 52%, 7% 48%, 8% 46%, 7% 42%, 9% 38%, 11% 33%, 14% 29%, 17% 27%, 22% 23%, 28% 22%, 30% 19%, 39% 17%); }
+
+/* Sidebar styles */
+.sidebar { position: fixed; top: 0; right: 0; width: 450px; height: 100vh; background: linear-gradient(135deg, rgba(20, 25, 40, 0.95) 0%, rgba(30, 35, 50, 0.95) 100%); backdrop-filter: blur(15px); border-left: 1px solid rgba(106, 215, 255, 0.3); padding: 30px; box-sizing: border-box; transform: translateX(100%); transition: transform 0.5s cubic-bezier(0.25, 0.1, 0.25, 1); overflow-y: auto; z-index: 1000; }
+.sidebar.is-visible { transform: translateX(0); }
+.sidebar h2 { color: #6ad7ff; margin-top: 0; margin-bottom: 25px; font-size: 26px; }
+.sidebar h3 { color: #6ad7ff; margin-top: 25px; border-bottom: 2px solid rgba(106, 215, 255, 0.3); padding-bottom: 8px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+.sidebar-part { margin-bottom: 20px; }
+.close-button { position: absolute; top: 15px; right: 20px; background: rgba(106, 215, 255, 0.1); border: 1px solid rgba(106, 215, 255, 0.3); color: white; font-size: 24px; cursor: pointer; padding: 8px 12px; line-height: 1; transition: all 0.3s ease; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.close-button:hover { background: rgba(106, 215, 255, 0.2); border-color: #6ad7ff; }
+.sidebar-icon { width: 24px; height: 24px; margin-right: 10px; vertical-align: middle; }
+.sidebar h4 { color: #ffffff; margin-top: 20px; margin-bottom: 15px; font-size: 16px; background: rgba(106, 215, 255, 0.1); padding: 10px 15px; border-radius: 8px; border-left: 3px solid #6ad7ff; }
+.sidebar p { line-height: 1.7; font-size: 15px; color: #d0d0d0; margin-bottom: 18px; text-align: justify; }
+.progress-indicator { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 100; }
+.progress-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(106, 215, 255, 0.3); cursor: pointer; transition: all 0.3s ease; }
+.progress-dot.active { background: #6ad7ff; box-shadow: 0 0 15px rgba(106, 215, 255, 0.5); }
+.progress-dot:hover { background: rgba(106, 215, 255, 0.7); }
+.sidebar-tour-nav { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(106, 215, 255, 0.2); }
+.tour-nav-button { padding: 8px 16px; background-color: rgba(106, 215, 255, 0.15); border: 1px solid rgba(106, 215, 255, 0.4); color: #f0f0f0; font-size: 14px; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+.tour-nav-button:hover { background-color: rgba(106, 215, 255, 0.3); border-color: #6ad7ff; }
+.tour-nav-button:disabled { opacity: 0.4; cursor: not-allowed; background-color: rgba(106, 215, 255, 0.05); }
+
+/* Tour Intro Overlay */
+.tour-intro-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.tour-intro-overlay.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tour-intro-content {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.9) 0%, rgba(30, 35, 50, 0.9) 100%);
+    border: 1px solid rgba(106, 215, 255, 0.4);
+    border-radius: 20px;
+    padding: 50px;
+    max-width: 700px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    backdrop-filter: blur(15px);
+}
+
+.tour-intro-content h2 {
+    font-size: 36px;
+    color: #6ad7ff;
+    margin-top: 0;
+    margin-bottom: 30px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.tour-intro-content p {
+    font-size: 18px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    color: #e8e8e8;
+    text-align: justify;
+}
+
+.tour-intro-content .tour-nav-button {
+    margin-top: 30px;
+    font-size: 18px;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, rgba(106, 215, 255, 0.2) 0%, rgba(106, 215, 255, 0.3) 100%);
+    border: 1px solid rgba(106, 215, 255, 0.5);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.tour-intro-content .tour-nav-button:hover {
+    background: linear-gradient(135deg, rgba(106, 215, 255, 0.3) 0%, rgba(106, 215, 255, 0.4) 100%);
+    border-color: #6ad7ff;
+    box-shadow: 0 5px 20px rgba(106, 215, 255, 0.3);
+    transform: translateY(-2px);
+}
+    </style>
+</head>
+<body>
+    <div class="logo">CIOS</div>
+
+    <div class="app-container">
+        <div class="info-panel">
+            <h3>🧠 Interactive AI Brain Map</h3>
+            <p>Click on brain regions to explore AI components. Press ESC to close panels.</p>
+            <button id="tour-button" class="tour-button">🚀 Start Guided Tour</button>
+        </div>
+
+        <div class="progress-indicator">
+            <div class="progress-dot" data-region-id="cerebellum-region" title="Block 1: Perception"></div>
+            <div class="progress-dot" data-region-id="parietal-region" title="Block 2: Engagement"></div>
+            <div class="progress-dot" data-region-id="frontal-region" title="Block 3: Memory"></div>
+            <div class="progress-dot" data-region-id="control-region" title="Block 4: Thinking"></div>
+            <div class="progress-dot" data-region-id="temporal-region" title="Block 5: Learning"></div>
+            <div class="progress-dot" data-region-id="occipital-region" title="Block 6: Security"></div>
+        </div>
+
+        <div class="brain-viewport loading">
+            <!-- Two separate layers for visual effects -->
+            <div id="active-layer" class="visual-container"></div>
+            <div id="hover-layer" class="visual-container"></div>
+            
+            <img id="base-brain" src="images/your-base-brain-image.png" alt="Base brain anatomy">
+            
+            <!-- Interactive invisible regions -->
+            <img class="brain-region" id="occipital-region" src="images/orangepart.png" alt="Security and Control">
+            <img class="brain-region" id="temporal-region" src="images/graypart.png" alt="Learning and Adaptation">
+            <img class="brain-region" id="parietal-region" src="images/greenpart.png" alt="Active Engagement">
+            <img class="brain-region" id="frontal-region" src="images/palepart.png" alt="Memory Integration">
+            <img class="brain-region" id="cerebellum-region" src="images/redpart.png" alt="Perception and Internal Coordination">
+            <img class="brain-region" id="control-region" src="images/frontallobe.png" alt="Deep Thinking and Decision Making">
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <button class="close-button" id="close-button" aria-label="Close sidebar">&times;</button>
+            <h2 id="sidebar-title"></h2>
+            <div id="sidebar-content" class="sidebar-content"></div>
+        </div>
+    </div>
+
+    <div id="tour-intro-overlay" class="tour-intro-overlay is-hidden">
+        <div class="tour-intro-content">
+            <h2>A Journey Into the Mind</h2>
+            <p>Throughout history, humanity's greatest innovations have emerged by studying nature's masterpieces. We learned flight from birds, navigation from stars, and efficiency from leaves. Each breakthrough came when we dared to ask: "How does nature solve this?"</p>
+            <p>Now, as we stand at the dawn of the age of artificial intelligence, we face our most ambitious challenge yet. What better blueprint could there be than the human brain—the most sophisticated, mysterious, and powerful creation known to existence?</p>
+            <p>This system is not merely code and algorithms. It is an architecture inspired by billions of years of evolution, where every component mirrors the elegant complexity of your own mind. You are about to embark on a journey through an AI that thinks, learns, and grows—just as you do.</p>
+            <p><strong>Welcome to the future, designed by nature's wisdom.</strong></p>
+            <button id="begin-tour-btn" class="tour-nav-button">Begin the Journey →</button>
+        </div>
+    </div>
+
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Data for sidebar content, now in English and with full details
+    const aiCoreData = {
+        "cerebellum-region": {
+            title: "Block 1: Perception and Internal Coordination",
+            parts: [{
+                subtitle: "Step 1.1: Receiving and Primarily Processing Signals",
+                aiComponent: "Business Data Access Layer (including Data transformation).",
+                brainAnalogy: "Just as our sensory organs (eyes, ears, skin) gather information from the surrounding world, and speech centers process verbal communication, this layer provides the AI with various data input channels. It connects to real-time business data (like vision scanning the environment), receives information through the chat interface (analogous to auditory perception and language comprehension), and through the document upload system (similar to how the brain processes written text). All this information is then prepared for further processing.",
+                investorTakeaway: "Your AI 'sees' your business systems' data, 'hears' your queries via chat, and 'reads' the documents you provide, getting a complete picture for analysis."
+            }, {
+                subtitle: "Step 1.2: Synchronization and Establishing General Context",
+                aiComponent: "Model Context Protocol (MCP) Integration.",
+                brainAnalogy: "For all parts of the brain to work in harmony, large white matter tracts (e.g., the corpus callosum) provide instant communication between them, and neuromodulatory systems (dopamine, serotonin) establish the overall 'operating mode.' MCP Integration acts as the AI's 'nervous system,' synchronizing all its components and maintaining a unified context for the current task.",
+                investorTakeaway: "MCP Integration ensures that all the intellectual centers of our AI work as a single, harmoniously tuned orchestra."
+            }]
+        },
+        "parietal-region": {
+            title: "Block 2: Active Engagement with Memory and Knowledge",
+            parts: [{
+                subtitle: "Step 2.1: Forming Working Context and Directing Attention",
+                aiComponent: "Thinking Engine (interacting with MCP Integration and Memory System).",
+                brainAnalogy: "To understand new information, the brain uses its executive system. At this stage, our Thinking Engine takes a central role. Just as the human Prefrontal Cortex manages 'working memory'—actively holding, updating, and manipulating task-relevant information—our 'Thinking Engine' forms the active working context. It uses MCP Integration to understand the goal and 'queries' the Memory System to retrieve necessary knowledge and experience, essentially directing the AI's 'attention' to the most critical aspects.",
+                investorTakeaway: "Your AI doesn't just passively react to a query. Its 'Thinking Engine' actively manages the process, creating a workspace to solve the task and focusing on key details, much like a person concentrating on a problem."
+            }, {
+                subtitle: "Step 2.2: Assessing Information Completeness and Initiating Further Search",
+                aiComponent: "A function driven by the interaction of MCP Integration and Thinking Engine.",
+                brainAnalogy: "A person can assess whether they have enough information to make a decision. The Prefrontal Cortex (metacognition) and the Anterior Cingulate Cortex (monitoring uncertainty) signal when knowledge is lacking. Our AI analyzes whether the current context is sufficient and, if not, initiates a request for more data (reactivating the Business Data Access Layer).",
+                investorTakeaway: "The AI doesn't operate blindly; it understands when it needs to gather more facts for a well-founded conclusion."
+            }]
+        },
+        "frontal-region": {
+            title: "Block 3: Memory Integration and Knowledge Formation",
+            parts: [{
+                subtitle: "Step 3.1: Encoding and 'Organizing' New Information",
+                aiComponent: "External Memory Architecture (primary function), Internal Data Storage.",
+                brainAnalogy: "New important information must be properly processed for long-term storage. The Hippocampus and adjacent structures of the Medial Temporal Lobe play a key role in encoding new memories, linking their various aspects, and gradually consolidating them (transferring them to long-term memory). The AI's External Memory Architecture performs a similar function, structuring and 'organizing' new data for integration.",
+                investorTakeaway: "Every new piece of data is carefully analyzed and organized in the AI's memory for future use."
+            }, {
+                subtitle: "Step 3.2: Associating with Existing Knowledge",
+                aiComponent: "Associative Memory Network (integrated with Memory System).",
+                brainAnalogy: "New knowledge becomes truly valuable when linked to what's already known. The association cortices (parietal, temporal, frontal) are responsible for integrating information from various sources and forming complex semantic links. The AI's Associative Memory Network dynamically builds connections between new data and the existing knowledge base.",
+                investorTakeaway: "The AI doesn't just accumulate facts; it sees the connections between them, forming a holistic understanding."
+            }, {
+                subtitle: "Step 3.3: Updating and Enriching the Experience Base",
+                aiComponent: "Knowledge and Experience Layer, Client-specific Knowledge Layer.",
+                brainAnalogy: "Over time, new information and the results of its processing become part of long-term memory. The Neocortex is the primary repository for semantic (facts) and episodic (experience) knowledge. The AI's Knowledge Layers are constantly updated and expanded, reflecting accumulated experience and expertise.",
+                investorTakeaway: "Your AI's memory is a living system that is constantly enriched, making it more experienced over time."
+            }, {
+                subtitle: "Step 3.4: Forming a Unique Interaction Style",
+                aiComponent: "Core AI Identity ('Soul') Layer.",
+                brainAnalogy: "Every person's brain develops a unique pattern of neural connections based on life experience. This 'neural signature' defines our personality, habits, and unique style of thinking and communication. Similarly, the Core AI Identity Layer is not a static set of rules but a dynamic core that evolves through interaction. It captures the unique patterns and preferences that arise from the specific AI's learning history, leading to the development of its own recognizable style of communication and problem-solving.",
+                investorTakeaway: "Instead of a faceless AI, you get a digital partner with a unique, adaptive personality. Each AI develops its own style based on interactions with your team and data, making collaboration more natural, intuitive, and effective."
+            }]
+        },
+        "control-region": {
+            title: "Block 4: Deep Thinking and Decision Making",
+            parts: [{
+                subtitle: "Step 4.1: Generating New Understanding from Existing Data",
+                aiComponent: "Experience Generation System (integrated with Memory System).",
+                brainAnalogy: "Based on processed and integrated information, new ideas are synthesized. The Prefrontal Cortex (especially its anterior parts) manages processes that involve not just recalling facts, but creatively recombining and abstracting them to form new understanding ('insights'). The AI's Experience Generation System models this process.",
+                investorTakeaway: "The AI doesn't just reproduce knowledge; it generates entirely new, valuable ideas and 'experiences' from it."
+            }, {
+                subtitle: "Step 4.2: Background Pondering and Intuitive Search",
+                aiComponent: "Background Thinking Processes (part of Thinking Engine).",
+                brainAnalogy: "Often, the best ideas come when we are not focused on a problem. The Default Mode Network is active during 'mind-wandering' and self-reflection, fostering creativity. The AI's Background Thinking Processes allow it to 'ponder' tasks in the background, which can lead to unexpected solutions.",
+                investorTakeaway: "Even when you don't assign a direct task, your AI continues to work on finding optimal solutions."
+            }, {
+                subtitle: "Step 4.3: Scenario Analysis and Social Adaptation",
+                aiComponent: "Scenario-Based Thinking Module (part of Thinking Engine).",
+                brainAnalogy: "An effective decision often requires foreseeing consequences and considering the social context. The Orbitofrontal Cortex and other areas of the PFC help us simulate future scenarios, assess their probability and desirability, and understand social norms to adapt our behavior (e.g., reacting to criticism). The AI's Scenario-Based Thinking Module analyzes different courses of action and their potential outcomes, including social aspects.",
+                investorTakeaway: "The AI considers not only 'hard' facts but also potential consequences and the context of interaction when choosing a strategy."
+            }, {
+                subtitle: "Step 4.4: Final Selection and Formulation of the Decision",
+                aiComponent: "A functionality of the Thinking Engine.",
+                brainAnalogy: "At this stage, the Prefrontal Cortex and Basal Ganglia work together to select the best course of action and inhibit less optimal alternatives. The AI's Thinking Engine completes its analysis, formulating a final, optimal decision before passing it to the final control stage.",
+                investorTakeaway: "You receive not just a set of options, but a clearly formulated, optimal solution from your AI."
+            }]
+        },
+        "temporal-region": {
+            title: "Block 5: Learning and Adaptation Based on Outcomes",
+            parts: [{
+                subtitle: "Step 5.1: Processing Feedback",
+                aiComponent: "Feedback Processing System (part of Self-improvement Framework).",
+                brainAnalogy: "The results of actions are a valuable source for learning. In the brain, the Basal Ganglia and the dopaminergic system play a key role in learning from positive (reward) or negative (error) reinforcement. The AI's Feedback Processing System analyzes outcomes and feedback.",
+                investorTakeaway: "The AI considers the results of its work and your feedback for continuous improvement."
+            }, {
+                subtitle: "Step 5.2: Resolving Internal Conflicts and Inconsistencies",
+                aiComponent: "Conflict Resolution Process (part of Self-improvement Framework).",
+                brainAnalogy: "Sometimes, contradictions can arise during processing. The Anterior Cingulate Cortex in the brain signals such conflicts, prompting their resolution. The AI's Conflict Resolution Process detects and resolves internal inconsistencies in knowledge or logic.",
+                investorTakeaway: "The AI strives for logical integrity, independently correcting possible internal contradictions."
+            }, {
+                subtitle: "Step 5.3: Performance Monitoring and Optimization",
+                aiComponent: "Performance Monitoring and Optimization (part of Self-improvement Framework).",
+                brainAnalogy: "Achieving mastery requires constant 'fine-tuning.' The Cerebellum is involved in tuning cognitive skills, and the PFC in strategic optimization. The AI's Performance Monitoring and Optimization constantly analyzes the effectiveness of its processes and makes adjustments.",
+                investorTakeaway: "Your AI's performance continuously improves thanks to built-in optimization mechanisms."
+            }]
+        },
+        "occipital-region": {
+            title: "Block 6: Ensuring Security and Intelligent Control of Response",
+            parts: [{
+                subtitle: "Step 6.1: End-to-End Security and Privacy Control",
+                aiComponent: "Security and Privacy Framework.",
+                brainAnalogy: "Throughout the thought process, the human Prefrontal Cortex maintains end-to-end control over what information is private and what is public, establishing general rules. Our AI's Security and Privacy Framework works similarly, defining access and confidentiality policies at every stage.",
+                investorTakeaway: "Security and privacy are fundamental principles of our AI's architecture, operating continuously."
+            }, {
+                subtitle: "Step 6.2: Intelligent Filtering of the Final Response – The 'Inner Diplomat'",
+                aiComponent: "Output Filtering Mechanism.",
+                brainAnalogy: "The brain's most sophisticated function is the ability to think with the full extent of one's knowledge but to speak selectively and judiciously. The Output Filtering Mechanism acts as the Prefrontal Cortex's 'inner diplomat.' Guided by the rules set by the Security and Privacy Framework, it analyzes the final decision and adapts it for external communication: modifying, redacting, or replacing sensitive data to convey the essence without revealing too much.",
+                investorTakeaway: "Your AI combines the depth of unrestricted analysis with the wisdom of selective communication. It always knows not only what to say, but also what not to say, ensuring maximum insight value while absolutely protecting your confidential information."
+            }]
+        }
+    };
+
+    // DOM Elements & State
+    const brainRegions = document.querySelectorAll('.brain-region');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarTitle = document.getElementById('sidebar-title');
+    const sidebarContentContainer = document.getElementById('sidebar-content');
+    const closeButton = document.getElementById('close-button');
+    const progressDots = document.querySelectorAll('.progress-dot');
+    const tourButton = document.getElementById('tour-button');
+    const activeLayer = document.getElementById('active-layer');
+    const hoverLayer = document.getElementById('hover-layer');
+    
+    let activeRegion = null;
+    let isTourActive = false;
+    
+    const regionOrder = [ 'cerebellum-region', 'parietal-region', 'frontal-region', 'control-region', 'temporal-region', 'occipital-region' ];
+
+    // --- FINAL INTERACTION LOGIC ---
+    
+    const stopTour = () => {
+        isTourActive = false;
+        document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+    };
+    
+    const openSidebar = (region) => {
+        // 1. Clear all previous states
+        activeLayer.innerHTML = '';
+        hoverLayer.innerHTML = '';
+        brainRegions.forEach(r => r.classList.remove('is-polygon-hover'));
+
+        // 2. Set the new active region
+        activeRegion = region;
+        const activeImage = document.createElement('img');
+        activeImage.src = region.src;
+        activeLayer.appendChild(activeImage);
+        setTimeout(() => { activeImage.style.opacity = '1' }, 10);
+
+        // 3. Populate and show the sidebar
+        updateProgressIndicator(region);
+
+        const data = aiCoreData[region.id];
+        if (data) {
+            sidebarTitle.textContent = data.title;
+            sidebarContentContainer.innerHTML = '';
+            data.parts.forEach(part => {
+                const partContainer = document.createElement('div');
+                partContainer.className = 'sidebar-part';
+                partContainer.innerHTML = `<h4>${part.subtitle}</h4>
+                    <h3><img src="images/icon-tree.png" class="sidebar-icon" alt="Brain Icon"> Brain Analogy</h3><p>${part.brainAnalogy}</p>
+                    <h3><img src="images/icon-chat.png" class="sidebar-icon" alt="AI Icon"> AI Component</h3><p>${part.aiComponent}</p>
+                    <h3><img src="images/icon-lightbulb.png" class="sidebar-icon" alt="Investor Icon"> For Investors</h3><p>${part.investorTakeaway}</p>`;
+                sidebarContentContainer.appendChild(partContainer);
+            });
+
+            addSidebarNavigation(region);
+
+            sidebar.classList.add('is-visible');
+        }
+    };
+    
+    const displayTourStep = (index) => {
+        if (index < 0 || index >= regionOrder.length) {
+            closeSidebar();
+            return;
+        }
+        
+        const currentRegionId = regionOrder[index];
+        const currentRegionElement = document.getElementById(currentRegionId);
+        
+        document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+        const nextIndex = index + 1;
+        if (nextIndex < regionOrder.length) {
+            document.getElementById(regionOrder[nextIndex]).classList.add('tour-highlight');
+        }
+        
+        openSidebar(currentRegionElement);
+    };
+    
+    const addSidebarNavigation = (region) => {
+        const currentIndex = regionOrder.indexOf(region.id);
+        const navContainer = document.createElement('div');
+        navContainer.className = 'sidebar-tour-nav';
+
+        const prevButton = document.createElement('button');
+        prevButton.className = 'tour-nav-button';
+        prevButton.textContent = '← Previous';
+        prevButton.disabled = (currentIndex === 0);
+        prevButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const prevRegionId = regionOrder[currentIndex - 1];
+            if (isTourActive) {
+                displayTourStep(currentIndex - 1);
+            } else {
+                openSidebar(document.getElementById(prevRegionId));
+            }
+        });
+
+        const nextButton = document.createElement('button');
+        nextButton.className = 'tour-nav-button';
+        
+        if (isTourActive && currentIndex === regionOrder.length - 1) {
+            nextButton.textContent = 'Finish Tour';
+        } else {
+            nextButton.textContent = 'Next →';
+        }
+        
+        nextButton.disabled = (!isTourActive && currentIndex === regionOrder.length - 1);
+
+        nextButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isTourActive && currentIndex === regionOrder.length - 1) {
+                closeSidebar();
+            } else {
+                const nextRegionId = regionOrder[currentIndex + 1];
+                if (isTourActive) {
+                    displayTourStep(currentIndex + 1);
+                } else {
+                    openSidebar(document.getElementById(nextRegionId));
+                }
+            }
+        });
+
+        navContainer.appendChild(prevButton);
+        navContainer.appendChild(nextButton);
+        sidebarContentContainer.appendChild(navContainer);
+    };
+
+    const startTour = () => {
+        const introOverlay = document.getElementById('tour-intro-overlay');
+        introOverlay.classList.remove('is-hidden');
+    };
+
+    const beginActualTour = () => {
+        const introOverlay = document.getElementById('tour-intro-overlay');
+        introOverlay.classList.add('is-hidden');
+        
+        isTourActive = true;
+        displayTourStep(0);
+    };
+
+    const closeSidebar = () => {
+        sidebar.classList.remove('is-visible');
+        activeLayer.innerHTML = '';
+        activeRegion = null;
+        if(isTourActive) {
+            stopTour();
+            isTourActive = false;
+        }
+        progressDots.forEach(dot => dot.classList.remove('active'));
+    };
+
+    const updateProgressIndicator = (region) => {
+        const activeIndex = regionOrder.indexOf(region.id);
+        progressDots.forEach((dot, index) => dot.classList.toggle('active', index === activeIndex));
+    };
+    
+    // --- Event Listener Setup ---
+    brainRegions.forEach(region => {
+        region.addEventListener('mouseenter', () => {
+            if (activeRegion) {
+                // If sidebar is open, show polygon hover
+                if (region !== activeRegion) {
+                    region.classList.add('is-polygon-hover');
+                }
+            } else {
+                // If sidebar is closed, show full image hover
+                hoverLayer.innerHTML = ''; // Clear previous
+                const hoverImage = document.createElement('img');
+                hoverImage.src = region.src;
+                hoverLayer.appendChild(hoverImage);
+                setTimeout(() => hoverImage.style.opacity = '1', 10);
+            }
+        });
+        
+        region.addEventListener('mouseleave', () => {
+            if (activeRegion) {
+                region.classList.remove('is-polygon-hover');
+            } else {
+                hoverLayer.innerHTML = '';
+            }
+        });
+
+        region.addEventListener('click', () => {
+            isTourActive = false; 
+            stopTour();
+            openSidebar(region);
+        });
+    });
+
+    progressDots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            isTourActive = false;
+            stopTour();
+            openSidebar(document.getElementById(regionOrder[index]));
+        });
+    });
+
+    tourButton.addEventListener('click', startTour);
+    closeButton.addEventListener('click', closeSidebar);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSidebar(); });
+    
+    const beginTourBtn = document.getElementById('begin-tour-btn');
+    if (beginTourBtn) {
+        beginTourBtn.addEventListener('click', beginActualTour);
+    }
+    
+    setTimeout(() => {
+        document.querySelector('.brain-viewport').classList.remove('loading');
+    }, 500);
+});
+    </script>
+</body>
+</html>
